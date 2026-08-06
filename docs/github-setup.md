@@ -9,7 +9,13 @@
 
 ## GitHub Actions
 
-`.github/workflows/build.yml`:
+`.github/workflows/build.yml` — подготовлен (см. `uploads/build.yml` / нижний блок), но пока НЕ добавлен
+в репозиторий: подключённый GitHub App в этой сессии не имеет права `workflows`
+(`refusing to allow a GitHub App to create or update workflow ... without workflows permission`).
+Добавление файла — обычный коммит, как только у интеграции появится право `workflows`
+(настройка: GitHub → Settings → Apps → разрешения интеграции → Workflows: Read and write).
+
+Workflow (когда будет добавлен):
 - **android**: ubuntu-latest, JDK 17, `./gradlew :app:assembleDebug`, артефакт APK;
 - **backend**: Python 3.11, `pip install -r requirements.txt`, `py_compile` + smoke-тесты (TestClient).
 
