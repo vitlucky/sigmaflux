@@ -55,7 +55,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-    backend:
+  backend:
     name: Backend — tests
     runs-on: ubuntu-latest
     steps:
@@ -82,14 +82,6 @@ jobs:
         continue-on-error: true
         working-directory: backend
         run: pytest tests -v --tb=long
-
-      - name: Debug backend on failure
-        if: failure()
-        working-directory: backend
-        run: |
-          echo "=== pip list ===" && pip list
-          echo "=== cat requirements ===" && cat requirements.txt
-          echo "=== pytest verbose ===" && pytest tests -v --tb=long || true
 
       - name: Debug backend on failure
         if: failure()
