@@ -24,7 +24,11 @@ private val Context.quoteStore by preferencesDataStore(name = "quote_cache")
  * 3) без кэша — детерминированные demo-значения с честной пометкой isDemo=true.
  * Никогда не выдаём demo за real-time.
  */
-class QuoteRepository(private val context: Context, private val api: BackendApi) {
+class QuoteRepository(
+    private val context: Context,
+    private val api: BackendApi,
+    private val priceHistory: PriceHistoryRepository? = null
+) {
 
     private val keyQuotesJson = stringPreferencesKey("quotes_json")
     private val keyUpdatedAt = longPreferencesKey("updated_at_epoch_ms")
@@ -41,21 +45,29 @@ class QuoteRepository(private val context: Context, private val api: BackendApi)
     suspend fun cachedQuotesOnce(): List<Quote> = cachedQuotes.first()
 
     /**
-     * Rolling-история цен в памяти (для 15-минутных алертов).
-     * Не персистится (MVP): окно живёт, пока запущено приложение.
+     * Rolling-история цен — теперь персистентная (DataStore) через PriceHistoryRepository.
+     * Fallback — in-memory если репозиторий не инжектирован (тесты).
      */
-    private val history = mutableMapOf<String, MutableList<Pair<Long, Double>>>()
+    private val fallbackHistory = mutableMapOf<String, MutableList<Pair<Long, Double>>>()
 
-    fun historyFor(symbol: String): List<Pair<Long, Double>> =
-        history[symbol]?.toList() ?: emptyList()
+    suspend fun historyFor(symbol: String): List<Pair<Long, Double>> =
+        priceHistory?.getHistory(symbol) ?: (fallbackHistory[symbol]?.toList() ?: emptyList())
 
-    private fun recordHistory(quotes: List<Quote>) {
-        val now = System.currentTimeMillis()
-        val cutoff = now - HISTORY_WINDOW_MS
-        quotes.forEach { q ->
-            val list = history.getOrPut(q.symbol) { mutableListOf() }
-            list.add(now to q.price)
-            while (list.isNotEmpty() && list.first().first < cutoff) list.removeAt(0)
+    /** Синхронная версия для совместимости (читает из памяти, если есть). */
+    fun historyForSync(symbol: String): List<Pair<Long, Double>> =
+        fallbackHistory[symbol]?.toList() ?: emptyList()
+
+    private suspend fun recordHistory(quotes: List<Quote>) {
+        if (priceHistory != null) {
+            priceHistory.record(quotes)
+        } else {
+            val now = System.currentTimeMillis()
+            val cutoff = now - HISTORY_WINDOW_MS
+            quotes.forEach { q ->
+                val list = fallbackHistory.getOrPut(q.symbol) { mutableListOf() }
+                list.add(now to q.price)
+                while (list.isNotEmpty() && list.first().first < cutoff) list.removeAt(0)
+            }
         }
     }
 

@@ -17,6 +17,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -112,8 +114,8 @@ fun MoreScreen(
     if (showCreate) {
         AlertCreateDialog(
             onDismiss = { showCreate = false },
-            onCreate = { type, symbol, threshold, label ->
-                vm.add(type, symbol, threshold, label)
+            onCreate = { type, symbol, threshold, label, isSmart ->
+                vm.add(type, symbol, threshold, label, isSmart)
                 showCreate = false
             },
             defaultPriceFor = { vm.priceFor(it) }
@@ -145,15 +147,26 @@ private fun AlertRow(alert: Alert, onDelete: () -> Unit) {
     GraphiteCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    "${alert.symbol} · ${alert.label}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Graphite.Text
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "${alert.symbol} · ${alert.label}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Graphite.Text,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (alert.isSmart) {
+                        Text(
+                            " · Smart",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Graphite.Accent,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                }
                 Text(
                     text = if (alert.firedAtEpochMs != null) {
                         "Сработал ${Format.ago(alert.firedAtEpochMs)}"
-                    } else if (alert.active) "Активен" else "Неактивен",
+                    } else if (alert.active) (if (alert.isSmart) "Smart · Активен" else "Активен") else "Неактивен",
                     style = MaterialTheme.typography.labelSmall,
                     color = if (alert.firedAtEpochMs != null) Graphite.Warning else Graphite.Muted
                 )
@@ -168,12 +181,13 @@ private fun AlertRow(alert: Alert, onDelete: () -> Unit) {
 @Composable
 private fun AlertCreateDialog(
     onDismiss: () -> Unit,
-    onCreate: (AlertType, String, Double, String) -> Unit,
+    onCreate: (AlertType, String, Double, String, Boolean) -> Unit,
     defaultPriceFor: (String) -> Double?
 ) {
     var type by remember { mutableStateOf(AlertType.PRICE_ABOVE) }
     var symbol by remember { mutableStateOf("IMOEX") }
     var threshold by remember { mutableStateOf("") }
+    var isSmart by remember { mutableStateOf(false) }
     var showPicker by remember { mutableStateOf(false) }
 
     val priceHint = defaultPriceFor(symbol)
@@ -229,8 +243,26 @@ private fun AlertCreateDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Smart-режим", style = MaterialTheme.typography.bodySmall, color = Graphite.Text)
+                        Text(
+                            "ATR/волатильность/объём/торговое время. Demo и неподтверждённые новости не триггерят.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Graphite.Muted
+                        )
+                    }
+                    Switch(
+                        checked = isSmart,
+                        onCheckedChange = { isSmart = it },
+                        colors = SwitchDefaults.colors(checkedThumbColor = Graphite.Accent)
+                    )
+                }
                 Text(
-                    "Детерминированная проверка по обновлениям котировок. Не является торговой рекомендацией.",
+                    "Детерминированная проверка по обновлениям котировок. Smart = доп. фильтры. Не является торговой рекомендацией.",
                     style = MaterialTheme.typography.labelSmall,
                     color = Graphite.Muted
                 )
@@ -241,14 +273,15 @@ private fun AlertCreateDialog(
                 enabled = threshold.toDoubleOrNull() != null,
                 onClick = {
                     val t = threshold.toDoubleOrNull() ?: 0.0
-                    val label = when (type) {
+                    val baseLabel = when (type) {
                         AlertType.PRICE_ABOVE -> "Цена ≥ ${Format.price(t)}"
                         AlertType.PRICE_BELOW -> "Цена ≤ ${Format.price(t)}"
                         AlertType.DROP_PCT_DAY -> "Падение ≥ ${Format.pct(-t)}"
                         AlertType.RISE_PCT_DAY -> "Рост ≥ ${Format.pct(t)}"
                         AlertType.DROP_PCT_15M -> "Падение за 15 мин ≥ ${Format.pct(-t)}"
                     }
-                    onCreate(type, symbol, t, label)
+                    val label = if (isSmart) "$baseLabel · Smart" else baseLabel
+                    onCreate(type, symbol, t, label, isSmart)
                 }
             ) { Text("Создать", color = Graphite.Accent) }
         },

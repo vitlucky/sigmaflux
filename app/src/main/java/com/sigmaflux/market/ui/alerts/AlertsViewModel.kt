@@ -30,8 +30,8 @@ class AlertsViewModel : ViewModel() {
         }
     }
 
-    fun add(type: AlertType, symbol: String, threshold: Double, label: String) {
-        viewModelScope.launch { repo.add(type, symbol, threshold, label) }
+    fun add(type: AlertType, symbol: String, threshold: Double, label: String, isSmart: Boolean = false) {
+        viewModelScope.launch { repo.add(type, symbol, threshold, label, isSmart) }
     }
 
     fun delete(id: String) {
@@ -40,7 +40,19 @@ class AlertsViewModel : ViewModel() {
 
     fun evaluate() {
         viewModelScope.launch {
-            repo.evaluate(_lastQuotes.value) { symbol -> quoteRepo.historyFor(symbol) }
+            val quotes = _lastQuotes.value
+            // предзагружаем историю для всех символов (suspend)
+            val historyMap = mutableMapOf<String, List<Pair<Long, Double>>>()
+            val ticksMap = mutableMapOf<String, List<com.sigmaflux.market.data.quote.PriceTick>>()
+            for (q in quotes) {
+                historyMap[q.symbol] = quoteRepo.historyFor(q.symbol)
+                ticksMap[q.symbol] = Graph.priceHistory.getTicks(q.symbol)
+            }
+            repo.evaluate(
+                quotes,
+                history = { sym -> historyMap[sym] ?: emptyList() },
+                priceTicks = { sym -> ticksMap[sym] ?: emptyList() }
+            )
         }
     }
 

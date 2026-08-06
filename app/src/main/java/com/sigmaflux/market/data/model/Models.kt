@@ -81,7 +81,8 @@ data class Alert(
     @SerialName("created_at_epoch_ms") val createdAtEpochMs: Long,
     @SerialName("fired_at_epoch_ms") val firedAtEpochMs: Long? = null,
     val active: Boolean = true,
-    val label: String
+    val label: String,
+    @SerialName("is_smart") val isSmart: Boolean = false
 )
 
 @Serializable
