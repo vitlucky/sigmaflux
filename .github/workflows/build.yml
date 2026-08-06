@@ -16,10 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4 # ИСПРАВЛЕНО: понижено до v4
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4 # ИСПРАВЛЕНО: понижено до v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -39,8 +39,6 @@ jobs:
           cat app/build.gradle.kts | head -n 100
 
       - name: Build Debug APK
-        # ИСПРАВЛЕНО: убран continue-on-error: true, чтобы сборка падала при реальных ошибках кода
-        # ИСПРАВЛЕНО: убран | tail -n 200, чтобы видеть полные логи ошибок
         run: ./gradlew :app:assembleDebug --stacktrace --info
 
       - name: Run Android unit tests
@@ -61,14 +59,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4 # ИСПРАВЛЕНО: понижено до v4
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-          cache-dependency-path: backend/requirements.txt # ИСПРАВЛЕНО: добавлен путь к файлу зависимостей
+          cache-dependency-path: backend/requirements.txt
 
       - name: Install dependencies
         run: |
@@ -81,7 +79,6 @@ jobs:
         run: python -m py_compile backend/app/main.py backend/app/schemas.py backend/app/providers/*.py
 
       - name: Run backend tests
-        continue-on-error: true
         working-directory: backend
         run: pytest tests -v --tb=long
 
