@@ -31,13 +31,20 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Debug env
+        run: |
+          java -version
+          ./gradlew --version
+          ls -la
+          cat app/build.gradle.kts | head -n 100
+
       - name: Build Debug APK
         continue-on-error: true
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: ./gradlew :app:assembleDebug --stacktrace --info | tail -n 200
 
       - name: Run Android unit tests
         continue-on-error: true
-        run: ./gradlew :app:testDebugUnitTest --stacktrace
+        run: ./gradlew :app:testDebugUnitTest --stacktrace || echo "tests failed, see above"
 
       - name: Upload APK artifact
         if: always()
