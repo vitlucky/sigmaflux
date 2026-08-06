@@ -57,10 +57,12 @@ class AlertRepository(private val context: Context) {
     }
 
     /**
-     * Детерминированная проверка условий по свежим котировкам.
+     * Детерминированная проверка условий по свежим котировкам и rolling-истории цен.
      * Возвращает сработавшие алерты (одноразовые — active=false после срабатывания).
+     *
+     * @param history карта symbol → [(timeMs, price)] для 15-минутных алертов.
      */
-    suspend fun evaluate(quotes: List<Quote>): List<Alert> {
+    suspend fun evaluate(quotes: List<Quote>, history: (String) -> List<Pair<Long, Double>> = { emptyList() }): List<Alert> {
         val bySymbol = quotes.associateBy { it.symbol }
         val current = all()
         val fired = mutableListOf<Alert>()
@@ -73,7 +75,16 @@ class AlertRepository(private val context: Context) {
                 AlertType.PRICE_BELOW -> q.price <= a.threshold
                 AlertType.DROP_PCT_DAY -> q.changePct <= -a.threshold
                 AlertType.RISE_PCT_DAY -> q.changePct >= a.threshold
-                AlertType.DROP_PCT_15M -> false // 15-минутный срез требует истории тиков — в MVP не оценивается
+                AlertType.DROP_PCT_15M -> {
+                    // падение за 15 минут от максимума окна (или первой точки окна)
+                    val points = history(a.symbol)
+                    if (points.size < 2) false
+                    else {
+                        val maxPrice = points.maxOf { it.second }
+                        val dropPct = (maxPrice - q.price) / maxPrice * 100
+                        dropPct >= a.threshold
+                    }
+                }
             }
             if (hit) {
                 val f = a.copy(firedAtEpochMs = System.currentTimeMillis(), active = false)

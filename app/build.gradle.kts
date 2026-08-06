@@ -89,4 +89,7 @@ dependencies {
 
     // Glance widget
     implementation("androidx.glance:glance-appwidget:1.1.0")
+
+    // Unit tests (JVM, run in CI)
+    testImplementation("junit:junit:4.13.2")
 }

@@ -60,8 +60,8 @@ class HomeViewModel : ViewModel() {
                 is RefreshResult.Demo -> { _quotes.value = res.quotes; _freshness.value = res.freshness }
             }
             _news.value = newsRepo.refresh(limit = 3).getOrElse { _news.value }
-            // smart alerts: детерминированная проверка по свежим котировкам
-            alertRepo.evaluate(_quotes.value)
+            // smart alerts: детерминированная проверка по свежим котировкам и истории цен
+            alertRepo.evaluate(_quotes.value) { symbol -> quoteRepo.historyFor(symbol) }
             _loading.value = false
         }
     }

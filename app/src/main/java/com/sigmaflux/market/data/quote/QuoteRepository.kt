@@ -40,11 +40,31 @@ class QuoteRepository(private val context: Context, private val api: BackendApi)
 
     suspend fun cachedQuotesOnce(): List<Quote> = cachedQuotes.first()
 
+    /**
+     * Rolling-история цен в памяти (для 15-минутных алертов).
+     * Не персистится (MVP): окно живёт, пока запущено приложение.
+     */
+    private val history = mutableMapOf<String, MutableList<Pair<Long, Double>>>()
+
+    fun historyFor(symbol: String): List<Pair<Long, Double>> =
+        history[symbol]?.toList() ?: emptyList()
+
+    private fun recordHistory(quotes: List<Quote>) {
+        val now = System.currentTimeMillis()
+        val cutoff = now - HISTORY_WINDOW_MS
+        quotes.forEach { q ->
+            val list = history.getOrPut(q.symbol) { mutableListOf() }
+            list.add(now to q.price)
+            while (list.isNotEmpty() && list.first().first < cutoff) list.removeAt(0)
+        }
+    }
+
     suspend fun refresh(symbols: List<String>): RefreshResult {
         return try {
             val dto = api.getQuotes(symbols.joinToString(","))
             val quotes = dto.quotes
             cache(quotes)
+            recordHistory(quotes)
             RefreshResult.Success(quotes, freshness(quotes.firstOrNull()?.updatedAtEpochMs ?: 0L, isDemo = false))
         } catch (e: Exception) {
             handleFailure(symbols, e)
@@ -81,6 +101,7 @@ class QuoteRepository(private val context: Context, private val api: BackendApi)
 
     companion object {
         const val STALE_AFTER_MINUTES = 15L
+        const val HISTORY_WINDOW_MS = 15 * 60_000L
     }
 }
 

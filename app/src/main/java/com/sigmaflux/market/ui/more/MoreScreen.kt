@@ -127,6 +127,20 @@ private fun SectionTitle(t: String) {
 }
 
 @Composable
+private fun TypeButton(t: AlertType, label: String, selected: AlertType, onSelect: (AlertType) -> Unit) {
+    TextButton(
+        onClick = { onSelect(t) },
+        modifier = Modifier.weight(1f)
+    ) {
+        Text(
+            label,
+            color = if (selected == t) Graphite.Accent else Graphite.Muted,
+            style = MaterialTheme.typography.labelMedium
+        )
+    }
+}
+
+@Composable
 private fun AlertRow(alert: Alert, onDelete: () -> Unit) {
     GraphiteCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -169,23 +183,19 @@ private fun AlertCreateDialog(
         title = { Text("Новый алерт", color = Graphite.Text) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(
-                        AlertType.PRICE_ABOVE to "Цена выше",
-                        AlertType.PRICE_BELOW to "Цена ниже",
-                        AlertType.DROP_PCT_DAY to "Падение за день",
-                        AlertType.RISE_PCT_DAY to "Рост за день"
-                    ).forEach { (t, label) ->
-                        TextButton(
-                            onClick = { type = t },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(
-                                label,
-                                color = if (type == t) Graphite.Accent else Graphite.Muted,
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(
+                            AlertType.PRICE_ABOVE to "Выше цены",
+                            AlertType.PRICE_BELOW to "Ниже цены",
+                            AlertType.DROP_PCT_DAY to "Падение дня"
+                        ).forEach { (t, label) -> TypeButton(t, label, type) { type = t } }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(
+                            AlertType.RISE_PCT_DAY to "Рост дня",
+                            AlertType.DROP_PCT_15M to "Падение 15м"
+                        ).forEach { (t, label) -> TypeButton(t, label, type) { type = t } }
                     }
                 }
                 OutlinedTextField(

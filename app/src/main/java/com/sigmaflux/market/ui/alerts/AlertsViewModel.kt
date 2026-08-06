@@ -40,7 +40,7 @@ class AlertsViewModel : ViewModel() {
 
     fun evaluate() {
         viewModelScope.launch {
-            repo.evaluate(_lastQuotes.value)
+            repo.evaluate(_lastQuotes.value) { symbol -> quoteRepo.historyFor(symbol) }
         }
     }
 
