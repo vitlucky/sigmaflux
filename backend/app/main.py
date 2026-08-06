@@ -95,6 +95,37 @@ def market_quotes(symbols: str = "IMOEX,RTSI,BTC") -> dict:
     return {"quotes": out, "is_demo": any_demo, "updated_at_epoch_ms": int(time.time() * 1000)}
 
 
+# допустимые интервалы свечей (сек): 1 мин, 5 мин, 15 мин, 1 ч, 1 день
+CANDLE_INTERVALS = {60, 300, 900, 3600, 86400}
+
+
+@app.get("/v1/market/candles")
+def market_candles(symbol: str = "IMOEX", interval: int = 3600, limit: int = 48) -> dict:
+    """Свечи для мини-графика. Реальные (ISS) с честным demo fallback."""
+    if interval not in CANDLE_INTERVALS:
+        raise HTTPException(status_code=422, detail=f"interval должен быть одним из {sorted(CANDLE_INTERVALS)}")
+    limit = max(5, min(limit, 200))
+    symbol = symbol.upper()
+    try:
+        if symbol in CRYPTO_SYMBOLS:
+            result = crypto.fetch_candles_sync(symbol, interval_sec=interval, limit=limit)
+        else:
+            result = moex.fetch_candles(symbol, interval_sec=interval, limit=limit)
+        candles = result["candles"]
+        is_demo = result.get("is_demo", False)
+    except Exception:
+        from .providers.demo_data import demo_candles
+        candles = demo_candles(symbol, interval, limit)
+        is_demo = True
+    return {
+        "symbol": symbol,
+        "interval": interval,
+        "candles": candles,
+        "is_demo": is_demo,
+        "updated_at_epoch_ms": int(time.time() * 1000),
+    }
+
+
 @app.get("/v1/news")
 def news(limit: int = 20) -> dict:
     limit = max(1, min(limit, 100))

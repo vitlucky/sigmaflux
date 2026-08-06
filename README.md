@@ -39,6 +39,18 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ./gradlew :app:assembleDebug
 ```
 
+## Что реализовано (прогресс)
+
+- ✅ Market Strip: добавление/удаление инструментов, DataStore-персистентность, поисковый picker
+- ✅ Watchlist Widget (Glance 4x2): кэш котировок, deep link `sigmaflux://asset/{symbol}`
+- ✅ UI создания алертов + детерминированная проверка по котировкам
+- ✅ Демо-портфель: market/limit заявки, комиссия, проскальзывание, avg price, P&L
+- ✅ Метки свежести данных: demo / stale / rate-limit («Источник временно ограничил запросы…»)
+- ✅ Свечи: backend `/v1/market/candles` (MOEX ISS / CCXT) + мини-график с честной меткой источника
+- ✅ News detail экран: слово «Неподтверждено» только здесь, красный не используется
+- ⏳ CI workflow подготовлен, ждёт права `workflows` у GitHub App
+- ⏳ APK: сборка через CI (в песочнице нет Android SDK)
+
 ## Ключевые решения
 
 - Kotlin, Jetpack Compose, Material 3, minSdk 28 (Android 9–11 и новее).

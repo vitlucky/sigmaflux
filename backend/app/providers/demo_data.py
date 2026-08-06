@@ -132,3 +132,44 @@ def demo_news() -> list[dict[str, Any]]:
             "is_confirmed": True,
         },
     ]
+
+
+def demo_candles(symbol: str, interval_sec: int, limit: int = 48) -> list[dict[str, Any]]:
+    """Детерминированные demo-свечи (random walk от базовой цены).
+
+    Возвращает list свечей: {"t": epoch_ms, "o","h","l","c","v"} по возрастанию времени.
+    Для неизвестных символов базовая цена выводится из хэша (детерминированно).
+    """
+    cfg = DEMO_BASE.get(symbol.upper())
+    if cfg is None:
+        seed_base = abs(hash(symbol.upper())) % 9000 + 100
+        base = float(seed_base)
+        volume_base = 1.0e6
+        dec = 2
+    else:
+        base = cfg["base"]
+        volume_base = cfg["volume"]
+        dec = cfg["decimals"]
+    now = int(time.time())
+    seed = abs(hash(symbol)) % 10000
+    candles: list[dict[str, Any]] = []
+    price = base
+    for i in range(limit):
+        t = now - (limit - i) * interval_sec
+        # псевдослучайный шаг, стабильный во времени
+        step = math.sin(seed * 0.001 + i * 0.7) * 0.008 + math.cos(seed * 0.0009 + i * 0.31) * 0.005
+        open_ = price
+        close = max(0.01, price * (1 + step))
+        high = max(open_, close) * (1 + abs(math.sin(i * 0.5 + seed)) * 0.006)
+        low = min(open_, close) * (1 - abs(math.cos(i * 0.4 + seed)) * 0.006)
+        volume = volume_base * (0.5 + 0.5 * abs(math.sin(i * 1.3 + seed)))
+        candles.append({
+            "t": t * 1000,
+            "o": _round(open_, dec),
+            "h": _round(high, dec),
+            "l": _round(low, dec),
+            "c": _round(close, dec),
+            "v": round(volume, 2),
+        })
+        price = close
+    return candles

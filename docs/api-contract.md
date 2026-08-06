@@ -66,6 +66,22 @@ HTTP 429 НЕ показывается пользователю как «429» �
 }
 ```
 
+### GET /v1/market/candles?symbol=IMOEX&interval=3600&limit=48
+Свечи для мини-графика. `interval` ∈ {60, 300, 900, 3600, 86400} (сек), `limit` ≤ 200.
+Реальные свечи (MOEX ISS / CCXT Binance) с честным demo-fallback.
+
+```json
+{
+  "symbol": "IMOEX",
+  "interval": 3600,
+  "candles": [
+    { "t": 1785980747000, "o": 3100.0, "h": 3132.2, "l": 3081.5, "c": 3130.4, "v": 7680903373.52 }
+  ],
+  "is_demo": false,
+  "updated_at_epoch_ms": 1785988401609
+}
+```
+
 ### GET /v1/market/overview
 ```json
 { "overview": { "market_status": "OPEN", "updated_at_epoch_ms": 0, "is_demo": true } }

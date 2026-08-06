@@ -53,6 +53,8 @@ fun AssetDetailScreen(
 ) {
     LaunchedEffect(symbol) { vm.load(symbol) }
     val quote by vm.quote.collectAsState()
+    val candles by vm.candles.collectAsState()
+    val candlesDemo by vm.candlesDemo.collectAsState()
     val inWatchlist by vm.inWatchlist.collectAsState()
 
     Column(
@@ -105,12 +107,13 @@ fun AssetDetailScreen(
                     )
                     Column {
                         Text(
-                            text = "Мини-график · demo",
+                            text = if (candlesDemo) "Свечи · demo (не real-time)"
+                            else "Свечи · MOEX ISS / CCXT",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Graphite.Muted
+                            color = if (candlesDemo) Graphite.Warning else Graphite.Muted
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        MiniChart(quote = q, heightDp = 120)
+                        MiniChart(candles = candles, heightDp = 120)
                     }
                 }
             }

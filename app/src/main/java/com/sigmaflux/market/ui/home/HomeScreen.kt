@@ -56,6 +56,7 @@ fun HomeScreen(
     onShowAllNews: () -> Unit,
     vm: HomeViewModel = viewModel()
 ) {
+    // onOpenNews(id): открывает news detail (route "news/{id}")
     val symbols by vm.watchlistSymbols.collectAsState()
     val quotes by vm.quotes.collectAsState()
     val freshness by vm.freshness.collectAsState()

@@ -8,7 +8,10 @@ import com.sigmaflux.market.data.model.Instrument
 import com.sigmaflux.market.data.model.Quote
 import com.sigmaflux.market.data.quote.demoQuotes
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class MarketViewModel : ViewModel() {
@@ -22,10 +25,8 @@ class MarketViewModel : ViewModel() {
     val search: StateFlow<String> = _search
 
     /** Каталог с фильтром по поиску (символ/имя/тип). */
-    val instruments: StateFlow<List<Instrument>> = kotlinx.coroutines.flow.combine(
-        _search, _quotes
-    ) { q, _ -> InstrumentCatalog.search(q) }
-        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), InstrumentCatalog.all)
+    val instruments: StateFlow<List<Instrument>> = combine(_search, _quotes) { q, _ -> InstrumentCatalog.search(q) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), InstrumentCatalog.all)
 
     val watchlistSymbols: StateFlow<List<String>> = watchlistRepo.symbols
         .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyList())

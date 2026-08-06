@@ -5,6 +5,7 @@ import com.sigmaflux.market.data.alert.AlertRepository
 import com.sigmaflux.market.data.news.NewsRepository
 import com.sigmaflux.market.data.network.ApiClient
 import com.sigmaflux.market.data.portfolio.PortfolioRepository
+import com.sigmaflux.market.data.quote.CandlesRepository
 import com.sigmaflux.market.data.quote.QuoteRepository
 import com.sigmaflux.market.data.watchlist.WatchlistRepository
 
@@ -24,6 +25,8 @@ object Graph {
         private set
     lateinit var portfolio: PortfolioRepository
         private set
+    lateinit var candles: CandlesRepository
+        private set
 
     fun init(context: Context) {
         if (::watchlist.isInitialized) return
@@ -32,5 +35,6 @@ object Graph {
         news = NewsRepository(context, ApiClient.api)
         alerts = AlertRepository(context)
         portfolio = PortfolioRepository(context)
+        candles = CandlesRepository(context, ApiClient.api)
     }
 }

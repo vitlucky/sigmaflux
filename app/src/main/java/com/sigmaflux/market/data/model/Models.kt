@@ -161,6 +161,17 @@ data class MarketOverview(
     @SerialName("is_demo") val isDemo: Boolean
 )
 
+/** Свеча для графика. */
+@Serializable
+data class Candle(
+    val t: Long,   // epoch ms открытия
+    val o: Double,
+    val h: Double,
+    val l: Double,
+    val c: Double,
+    val v: Double
+)
+
 /** Свежесть данных для UI-метки. */
 data class Freshness(
     val updatedAgoMinutes: Long,

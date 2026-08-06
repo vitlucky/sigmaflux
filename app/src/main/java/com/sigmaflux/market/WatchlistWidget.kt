@@ -5,7 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.action.actionStartActivity
@@ -79,13 +81,13 @@ class WatchlistWidget : GlanceAppWidget() {
         ) {
             Text(
                 text = "SigmaFlux · Watchlist",
-                style = TextStyle(color = ColorProvider(GraphiteWidget.Muted), fontSize = 12f),
+                style = TextStyle(color = ColorProvider(GraphiteWidget.Muted), fontSize = 12.sp),
                 modifier = GlanceModifier.padding(bottom = 8.dp)
             )
             if (empty || quotes.isEmpty()) {
                 Text(
                     text = "Нет инструментов. Добавьте их на главном экране.",
-                    style = TextStyle(color = ColorProvider(GraphiteWidget.Muted), fontSize = 12f)
+                    style = TextStyle(color = ColorProvider(GraphiteWidget.Muted), fontSize = 12.sp)
                 )
             } else {
                 // горизонтальный ряд: расширяется за пределы ширины (scrolling)
@@ -113,15 +115,15 @@ class WatchlistWidget : GlanceAppWidget() {
         ) {
             Text(
                 text = q.symbol,
-                style = TextStyle(color = ColorProvider(GraphiteWidget.Text), fontWeight = FontWeight.Bold, fontSize = 14f)
+                style = TextStyle(color = ColorProvider(GraphiteWidget.Text), fontWeight = FontWeight.Bold, fontSize = 14.sp)
             )
             Text(
                 text = Format.price(q),
-                style = TextStyle(color = ColorProvider(GraphiteWidget.Text), fontSize = 16f)
+                style = TextStyle(color = ColorProvider(GraphiteWidget.Text), fontSize = 16.sp)
             )
             Text(
                 text = Format.pct(q.changePct),
-                style = TextStyle(color = ColorProvider(color), fontSize = 13f)
+                style = TextStyle(color = ColorProvider(color), fontSize = 13.sp)
             )
         }
     }
@@ -129,11 +131,11 @@ class WatchlistWidget : GlanceAppWidget() {
 
 /** Палитра widget (Graphite Premium). */
 object GraphiteWidget {
-    val Background = 0xFF16161C
-    val Text = 0xFFF2EFF7
-    val Muted = 0xFFA49EB0
-    val Positive = 0xFF87D5B6
-    val Negative = 0xFFE9A0B0
+    val Background = Color(0xFF16161C)
+    val Text = Color(0xFFF2EFF7)
+    val Muted = Color(0xFFA49EB0)
+    val Positive = Color(0xFF87D5B6)
+    val Negative = Color(0xFFE9A0B0)
 }
 
 class WatchlistWidgetReceiver : GlanceAppWidgetReceiver() {

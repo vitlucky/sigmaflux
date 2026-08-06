@@ -42,6 +42,7 @@ import com.sigmaflux.market.ui.detail.AssetDetailScreen
 import com.sigmaflux.market.ui.home.HomeScreen
 import com.sigmaflux.market.ui.market.MarketScreen
 import com.sigmaflux.market.ui.more.MoreScreen
+import com.sigmaflux.market.ui.news.NewsDetailScreen
 import com.sigmaflux.market.ui.news.NewsScreen
 import com.sigmaflux.market.ui.portfolio.PortfolioScreen
 import com.sigmaflux.market.ui.theme.Graphite
@@ -139,14 +140,24 @@ private fun SigmaFluxApp() {
                 HomeScreen(
                     behavior = behavior,
                     onOpenInstrument = { navController.navigate("detail/$it") },
-                    onOpenNews = { navController.navigate("news") },
+                    onOpenNews = { newsId -> navController.navigate("news/$newsId") },
                     onShowAllNews = { navController.navigate("news") }
                 )
             }
             composable("news") {
                 NewsScreen(
                     behavior = behavior,
-                    onOpenNews = { /* detail новости — следующий этап */ }
+                    onOpenNews = { newsId -> navController.navigate("news/$newsId") }
+                )
+            }
+            composable(
+                route = "news/{newsId}",
+                arguments = listOf(navArgument("newsId") { type = NavType.StringType })
+            ) { entry ->
+                val newsId = entry.arguments?.getString("newsId") ?: return@composable
+                NewsDetailScreen(
+                    newsId = newsId,
+                    onBack = { navController.popBackStack() }
                 )
             }
             composable("market") {

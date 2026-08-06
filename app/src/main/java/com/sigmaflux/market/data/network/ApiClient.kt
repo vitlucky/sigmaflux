@@ -2,9 +2,11 @@ package com.sigmaflux.market.data.network
 
 import com.sigmaflux.market.BuildConfig
 import com.sigmaflux.market.data.model.Alert
+import com.sigmaflux.market.data.model.Candle
 import com.sigmaflux.market.data.model.MarketOverview
 import com.sigmaflux.market.data.model.NewsItem
 import com.sigmaflux.market.data.model.Quote
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -31,6 +33,15 @@ data class NewsResponse(val news: List<NewsItem>, val is_demo: Boolean)
 data class AlertsResponse(val alerts: List<Alert>)
 
 @Serializable
+data class CandlesResponse(
+    val symbol: String,
+    val interval: Int,
+    val candles: List<Candle>,
+    @SerialName("is_demo") val isDemo: Boolean,
+    @SerialName("updated_at_epoch_ms") val updatedAtEpochMs: Long
+)
+
+@Serializable
 data class OverviewResponse(val overview: MarketOverview)
 
 @Serializable
@@ -44,6 +55,13 @@ interface BackendApi {
 
     @GET("v1/market/quotes")
     suspend fun getQuotes(@Query("symbols") symbols: String): QuotesResponse
+
+    @GET("v1/market/candles")
+    suspend fun getCandles(
+        @Query("symbol") symbol: String,
+        @Query("interval") interval: Int = 3600,
+        @Query("limit") limit: Int = 48
+    ): CandlesResponse
 
     @GET("v1/market/overview")
     suspend fun getOverview(): OverviewResponse

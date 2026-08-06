@@ -1,4 +1,4 @@
-"""Smoke-тесты API (без внешних ключей; demo-fallback)."""
+"""Smoke-тесты API (без внешних ключей; demo-fallback, сеть не требуется)."""
 
 from fastapi.testclient import TestClient
 
@@ -51,3 +51,50 @@ def test_instruments():
 def test_ai_disabled():
     r = client.get("/v1/ai")
     assert r.json()["enabled"] is False
+
+
+def test_candles_default():
+    """Свечи: 48 баров, валидные OHLC, отметки времени по возрастанию."""
+    r = client.get("/v1/market/candles", params={"symbol": "IMOEX", "interval": 3600, "limit": 48})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["symbol"] == "IMOEX"
+    assert len(body["candles"]) == 48
+    ts = [c["t"] for c in body["candles"]]
+    assert ts == sorted(ts)
+    for c in body["candles"]:
+        assert c["l"] <= c["o"] <= c["h"]
+        assert c["l"] <= c["c"] <= c["h"]
+        assert c["v"] >= 0
+
+
+def test_candles_bad_interval():
+    r = client.get("/v1/market/candles", params={"symbol": "IMOEX", "interval": 12345})
+    assert r.status_code == 422
+
+
+def test_candles_crypto():
+    r = client.get("/v1/market/candles", params={"symbol": "BTC", "interval": 900, "limit": 20})
+    assert r.status_code == 200
+    assert len(r.json()["candles"]) == 20
+
+
+def test_candles_unknown_symbol_demo():
+    r = client.get("/v1/market/candles", params={"symbol": "UNKNOWN_SYM", "interval": 3600, "limit": 10})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["is_demo"] is True
+    assert len(body["candles"]) == 10
+
+
+def test_demo_candles_consistency():
+    """Свечи из demo_data: OHLC консистентны для всех символов."""
+    from app.providers.demo_data import demo_candles
+
+    for symbol in ("IMOEX", "SBER", "USDRUB", "BTC", "VTBR"):
+        candles = demo_candles(symbol, 3600, 30)
+        assert len(candles) == 30
+        for c in candles:
+            assert c["l"] <= c["o"] <= c["h"]
+            assert c["l"] <= c["c"] <= c["h"]
+            assert c["t"] > 0

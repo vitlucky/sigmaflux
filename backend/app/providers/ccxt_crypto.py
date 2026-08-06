@@ -9,7 +9,7 @@ import time
 from typing import Any
 
 from .base import ProviderError
-from .demo_data import demo_quote
+from .demo_data import demo_candles, demo_quote
 
 # symbol -> (ccxt_id, биржа)
 CRYPTO_MAP: dict[str, tuple[str, str]] = {
@@ -67,3 +67,40 @@ class CcxtCryptoProvider:
 
     def fetch_quote_sync(self, symbol: str) -> dict[str, Any]:
         return asyncio.run(self.fetch_quote(symbol))
+
+    async def fetch_candles(self, symbol: str, interval_sec: int = 3600, limit: int = 48) -> dict[str, Any]:
+        """Свечи через CCXT (Binance public). Возвращает {"candles": [...], "is_demo": bool}."""
+        symbol = symbol.upper()
+        mapping = CRYPTO_MAP.get(symbol)
+        if mapping is None:
+            return {"candles": demo_candles(symbol, interval_sec, limit), "is_demo": True}
+        market, exchange_id = mapping
+        try:
+            import ccxt.async_support as ccxt_async
+
+            exchange_class = getattr(ccxt_async, exchange_id)
+            exchange = exchange_class({"enableRateLimit": True, "timeout": int(self.timeout * 1000)})
+            try:
+                timeframe = {
+                    60: "1m", 300: "5m", 900: "15m", 3600: "1h", 86400: "1d",
+                }.get(interval_sec, "1h")
+                raw = await exchange.fetch_ohlcv(market, timeframe=timeframe, limit=limit)
+            finally:
+                await exchange.close()
+
+            candles: list[dict[str, Any]] = []
+            for row in raw:
+                candles.append({
+                    "t": int(row[0]),
+                    "o": row[1],
+                    "h": row[2],
+                    "l": row[3],
+                    "c": row[4],
+                    "v": row[5],
+                })
+            return {"candles": candles, "is_demo": False}
+        except Exception:
+            return {"candles": demo_candles(symbol, interval_sec, limit), "is_demo": True}
+
+    def fetch_candles_sync(self, symbol: str, interval_sec: int = 3600, limit: int = 48) -> dict[str, Any]:
+        return asyncio.run(self.fetch_candles(symbol, interval_sec, limit))

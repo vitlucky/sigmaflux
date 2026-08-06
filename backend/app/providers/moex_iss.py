@@ -9,14 +9,23 @@ Mapping symbol → board:
 """
 
 import time
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import requests
 
 from .base import BaseProvider, ProviderError
-from .demo_data import demo_quote
+from .demo_data import demo_candles, demo_quote
 
 ISS_BASE = "https://iss.moex.com/iss"
+
+
+def iso_epoch_ms(value: str) -> int:
+    """'2026-08-06 10:00:00' (MSK) → epoch ms (UTC)."""
+    dt = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+    # ISS отдаёт время в московском часовом поясе
+    dt_msk = dt.replace(tzinfo=timezone(timedelta(hours=3)))
+    return int(dt_msk.timestamp() * 1000)
 
 # symbol -> (engine, market, board)
 MOEX_BOARDS: dict[str, tuple[str, str, str]] = {
@@ -96,3 +105,45 @@ class MoexIssProvider(BaseProvider):
             raise
         except Exception as exc:  # любой сбой — честный demo fallback
             return demo_quote(symbol, provider="demo")
+
+    def fetch_candles(self, symbol: str, interval_sec: int = 3600, limit: int = 48) -> dict[str, Any]:
+        """Свечи MOEX ISS (interval: 60|300|900|3600|86400) → demo fallback.
+
+        Возвращает {"candles": [...], "is_demo": bool}.
+        """
+        symbol = symbol.upper()
+        board = MOEX_BOARDS.get(symbol)
+        if board is None:
+            return {"candles": demo_candles(symbol, interval_sec, limit), "is_demo": True}
+        engine, market, _board = board
+        # ISS принимает 'from'; берём окно с запасом на выходные
+        window_days = max(1, (limit * interval_sec) // 86400 + 2)
+        from_date = (datetime.now(timezone.utc) - timedelta(days=window_days)).strftime("%Y-%m-%d")
+        try:
+            data = self._request(
+                f"{ISS_BASE}/engines/{engine}/markets/{market}/securities/{symbol}/candles.json",
+                params={
+                    "iss.meta": "off",
+                    "from": from_date,
+                    "interval": str(interval_sec),
+                    "limit": str(min(limit, 200)),
+                },
+            )
+            columns = (data.get("candles") or {}).get("columns") or []
+            rows = (data.get("candles") or {}).get("data") or []
+            idx = {name: i for i, name in enumerate(columns)}
+            out: list[dict[str, Any]] = []
+            for row in rows[-limit:]:
+                out.append({
+                    "t": int(iso_epoch_ms(row[idx.get("begin", 0)])) if idx.get("begin") is not None else 0,
+                    "o": row[idx.get("open", 1)],
+                    "h": row[idx.get("high", 3)],
+                    "l": row[idx.get("low", 4)],
+                    "c": row[idx.get("close", 2)],
+                    "v": row[idx.get("volume", 6)] or 0.0,
+                })
+            if not out:
+                return {"candles": demo_candles(symbol, interval_sec, limit), "is_demo": True}
+            return {"candles": out, "is_demo": False}
+        except Exception:
+            return {"candles": demo_candles(symbol, interval_sec, limit), "is_demo": True}
