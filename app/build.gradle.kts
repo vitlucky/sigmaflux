@@ -13,7 +13,7 @@ android {
     val localProps = java.util.Properties()
     val localFile = rootProject.file("local.properties")
     if (localFile.exists()) localFile.inputStream().use { localProps.load(it) }
-    val localBackendUrl: String? = localProps.getProperty("sigmaflux.backendUrl")?.trim()?.takeIf { it.isNotEmpty() }
+    val localBackendUrl: String? = localProps.getProperty("sigmaflux.backendUrl")?.trim()?.takeIf { value -> value.isNotEmpty() }
 
     defaultConfig {
         applicationId = "com.sigmaflux.market"
