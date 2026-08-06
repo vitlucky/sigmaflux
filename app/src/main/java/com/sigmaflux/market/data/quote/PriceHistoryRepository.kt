@@ -12,7 +12,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
 
 private val Context.priceHistoryStore by preferencesDataStore(name = "price_history")
 
@@ -50,7 +49,7 @@ class PriceHistoryRepository(private val context: Context) {
             if (raw != null) {
                 runCatching {
                     val map = json.decodeFromString(
-                        MapSerializer(serializer<String>(), ListSerializer(PriceTick.serializer())),
+                        MapSerializer(kotlinx.serialization.serializer<String>(), ListSerializer(PriceTick.serializer())),
                         raw
                     )
                     map.forEach { (sym, ticks) -> memory[sym] = ticks.toMutableList() }
@@ -111,7 +110,7 @@ class PriceHistoryRepository(private val context: Context) {
         mutex.withLock {
             memory.clear()
             context.priceHistoryStore.edit { it[keyHistoryJson] = json.encodeToString(
-                MapSerializer(serializer<String>(), ListSerializer(PriceTick.serializer())),
+                MapSerializer(kotlinx.serialization.serializer<String>(), ListSerializer(PriceTick.serializer())),
                 emptyMap()
             ) }
         }
@@ -121,7 +120,7 @@ class PriceHistoryRepository(private val context: Context) {
         // must be called with mutex held
         val snapshot: Map<String, List<PriceTick>> = memory.mapValues { it.value.toList() }
         val raw = json.encodeToString(
-            MapSerializer(serializer<String>(), ListSerializer(PriceTick.serializer())),
+            MapSerializer(kotlinx.serialization.serializer<String>(), ListSerializer(PriceTick.serializer())),
             snapshot
         )
         context.priceHistoryStore.edit { it[keyHistoryJson] = raw }
