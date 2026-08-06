@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Graphite Premium palette (values duplicated for XML usage) -->
+    <color name="graphite_background">#16161C</color>
+    <color name="graphite_surface">#1A1A22</color>
+    <color name="graphite_elevated">#23232D</color>
+    <color name="graphite_text">#F2EFF7</color>
+    <color name="graphite_muted">#A49EB0</color>
+    <color name="graphite_accent">#B7A1FF</color>
+    <color name="graphite_positive">#87D5B6</color>
+    <color name="graphite_negative">#E9A0B0</color>
+    <color name="graphite_warning">#D8B875</color>
+</resources>
