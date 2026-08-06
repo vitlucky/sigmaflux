@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SigmaFlux</string>
+    <string name="widget_watchlist_name">Watchlist</string>
+    <string name="widget_watchlist_description">Избранные инструменты SigmaFlux</string>
+
+    <string name="tab_home">Главная</string>
+    <string name="tab_news">Новости</string>
+    <string name="tab_market">Рынок</string>
+    <string name="tab_portfolio">Портфель</string>
+    <string name="tab_more">Ещё</string>
+
+    <string name="disclaimer">Данные демонстрационные. Не инвестиционная рекомендация.</string>
+    <string name="provider_limited">Источник временно ограничил запросы. Показываем сохранённые данные.</string>
+</resources>
