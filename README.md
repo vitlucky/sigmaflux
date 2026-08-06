@@ -62,3 +62,5 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - Демо-портфель: market/limit заявки, комиссия, проскальзывание, P&L. Всё помечено simulation/demo.
 
 Подробнее: `docs/` (api-contract.md, visual-design.md, alerts-and-portfolio.md, github-setup.md, instruments.md).
+
+<!-- CI: build workflow ready, pending workflows permission -->
