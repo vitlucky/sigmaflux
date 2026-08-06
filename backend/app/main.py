@@ -22,11 +22,15 @@ app = FastAPI(
     version=VERSION,
 )
 
-# CORS для локальной отладки (web-клиенты). В проде — строгий allowlist.
+import os
+
+# CORS: в проде — строгий allowlist из env, для локальной отладки — * (демо).
+_allowed_origins = os.getenv("CORS_ALLOW_ORIGINS", "*")
+_allow_list = [o.strip() for o in _allowed_origins.split(",") if o.strip()] if _allowed_origins != "*" else ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=_allow_list,
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -77,7 +81,15 @@ def market_overview() -> dict:
 
 @app.get("/v1/market/quotes")
 def market_quotes(symbols: str = "IMOEX,RTSI,BTC") -> dict:
+    if len(symbols) > 200:
+        raise HTTPException(status_code=422, detail="symbols too long")
+    # только A-Z0-9 и запятая, защита от инъекции
+    import re
+    if not re.fullmatch(r"[A-Za-z0-9, ]+", symbols):
+        raise HTTPException(status_code=422, detail="invalid symbols format")
     requested = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+    if len(requested) == 0 or len(requested) > 20:
+        raise HTTPException(status_code=422, detail="symbols count must be 1..20")
     out = []
     any_demo = False
     for sym in requested:
@@ -102,6 +114,8 @@ CANDLE_INTERVALS = {60, 300, 900, 3600, 86400}
 @app.get("/v1/market/candles")
 def market_candles(symbol: str = "IMOEX", interval: int = 3600, limit: int = 48) -> dict:
     """Свечи для мини-графика. Реальные (ISS) с честным demo fallback."""
+    if not symbol or len(symbol) > 20 or not symbol.replace("_", "").replace("-", "").isalnum():
+        raise HTTPException(status_code=422, detail="invalid symbol")
     if interval not in CANDLE_INTERVALS:
         raise HTTPException(status_code=422, detail=f"interval должен быть одним из {sorted(CANDLE_INTERVALS)}")
     limit = max(5, min(limit, 200))

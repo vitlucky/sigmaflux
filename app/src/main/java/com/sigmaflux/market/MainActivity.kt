@@ -77,13 +77,18 @@ private fun SigmaFluxApp() {
     val behavior = remember { BottomBarBehavior() }
     var pendingSymbol by remember { mutableStateOf<String?>(null) }
 
-    // deep link: sigmaflux://asset/{symbol}
+    // deep link: sigmaflux://asset/{symbol} — валидация против каталога
     LaunchedEffect(Unit) {
         val intent = (LocalContext.current as? ComponentActivity)?.intent
         intent?.data?.let { uri ->
             if (uri.scheme == "sigmaflux" && uri.host == "asset") {
-                val sym = uri.pathSegments.firstOrNull()?.uppercase()
-                if (sym != null) pendingSymbol = sym
+                val raw = uri.pathSegments.firstOrNull()?.uppercase()?.trim()
+                // только A-Z0-9, длина 1..12, должен быть в каталоге
+                if (!raw.isNullOrBlank() && raw.matches(Regex("^[A-Z0-9]{1,12}$")) &&
+                    com.sigmaflux.market.data.instrument.InstrumentCatalog.bySymbol(raw) != null
+                ) {
+                    pendingSymbol = raw
+                }
             }
         }
     }
@@ -182,9 +187,13 @@ private fun SigmaFluxApp() {
                 route = "detail/{symbol}",
                 arguments = listOf(navArgument("symbol") { type = NavType.StringType })
             ) { entry ->
-                val symbol = entry.arguments?.getString("symbol")?.uppercase() ?: return@composable
+                val raw = entry.arguments?.getString("symbol")?.uppercase()?.trim() ?: return@composable
+                // валидация: только A-Z0-9, 1..12, должен быть в каталоге
+                if (!raw.matches(Regex("^[A-Z0-9]{1,12}$")) ||
+                    com.sigmaflux.market.data.instrument.InstrumentCatalog.bySymbol(raw) == null
+                ) return@composable
                 AssetDetailScreen(
-                    symbol = symbol,
+                    symbol = raw,
                     onBack = { navController.popBackStack() },
                     onCreateAlert = { sym ->
                         navController.navigate("more")
