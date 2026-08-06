@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -10,10 +13,10 @@ android {
     compileSdk = 35
 
     // Чтение локального backend URL из local.properties (для физ. устройства), иначе — дефолты ниже.
-    val localProps = java.util.Properties()
+    val localProps = Properties()
     val localFile = rootProject.file("local.properties")
     if (localFile.exists()) localFile.inputStream().use { localProps.load(it) }
-    val localBackendUrl: String? = localProps.getProperty("sigmaflux.backendUrl")?.trim()?.takeIf { value -> value.isNotEmpty() }
+    val localBackendUrl: String? = localProps.getProperty("sigmaflux.backendUrl")?.trim()?.takeIf { value: String -> value.isNotEmpty() }
 
     defaultConfig {
         applicationId = "com.sigmaflux.market"
