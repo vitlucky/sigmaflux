@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -9,6 +12,12 @@ android {
     namespace = "com.sigmaflux.market"
     compileSdk = 35
 
+    // Чтение локального backend URL из local.properties (для физ. устройства), иначе — дефолты ниже.
+    val localProps = Properties()
+    val localFile = rootProject.file("local.properties")
+    if (localFile.exists()) localFile.inputStream().use { localProps.load(it) }
+    val localBackendUrl: String? = localProps.getProperty("sigmaflux.backendUrl")?.trim()?.takeIf { value: String -> value.isNotEmpty() }
+
     defaultConfig {
         applicationId = "com.sigmaflux.market"
         minSdk = 28
@@ -16,10 +25,6 @@ android {
         versionCode = 1
         versionName = "0.1.0-alpha"
 
-        // Relative backend URL for the Android emulator (host loopback).
-        // For a physical device put your LAN IP / staging host here or in local.properties
-        // as sigmaflux.backendUrl and read it via BuildConfig at build time (see below).
-        buildConfigField("String", "BACKEND_BASE_URL", "\"http://10.0.2.2:8000/\"")
         buildConfigField("boolean", "AI_ENABLED", "false")
     }
 
@@ -31,6 +36,14 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // В релизе — только https. Локальный http — только для debug/эмулятора.
+            val releaseUrl = localBackendUrl?.takeIf { it.startsWith("https://") } ?: "https://api.sigmaflux.example/"
+            buildConfigField("String", "BACKEND_BASE_URL", "\"$releaseUrl\"")
+        }
+        debug {
+            val debugUrl = localBackendUrl ?: "http://10.0.2.2:8000/"
+            // debug допускает http для эмулятора, но релиз — usesCleartextTraffic=false
+            buildConfigField("String", "BACKEND_BASE_URL", "\"$debugUrl\"")
         }
     }
 

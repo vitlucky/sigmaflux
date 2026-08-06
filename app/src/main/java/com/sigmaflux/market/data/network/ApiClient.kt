@@ -91,6 +91,16 @@ object ApiClient {
     private val okHttp = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
         .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
+        .callTimeout(15, TimeUnit.SECONDS)
+        .apply {
+            // Логирование только в debug (не в релизе, чтобы не светить URL/параметры)
+            if (com.sigmaflux.market.BuildConfig.DEBUG) {
+                addInterceptor(
+                    okhttp3.logging.HttpLoggingInterceptor().apply { level = okhttp3.logging.HttpLoggingInterceptor.Level.BASIC }
+                )
+            }
+        }
         .build()
 
     val api: BackendApi by lazy {

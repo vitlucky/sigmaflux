@@ -60,8 +60,15 @@ class HomeViewModel : ViewModel() {
                 is RefreshResult.Demo -> { _quotes.value = res.quotes; _freshness.value = res.freshness }
             }
             _news.value = newsRepo.refresh(limit = 3).getOrElse { _news.value }
-            // smart alerts: детерминированная проверка по свежим котировкам и истории цен
-            alertRepo.evaluate(_quotes.value) { symbol -> quoteRepo.historyFor(symbol) }
+            // smart alerts: персистентная 15-мин история + ATR/волатильность/объём/торговое время
+            val q = _quotes.value
+            val histMap = mutableMapOf<String, List<Pair<Long, Double>>>()
+            val ticksMap = mutableMapOf<String, List<com.sigmaflux.market.data.quote.PriceTick>>()
+            for (quote in q) {
+                histMap[quote.symbol] = quoteRepo.historyFor(quote.symbol)
+                ticksMap[quote.symbol] = Graph.priceHistory.getTicks(quote.symbol)
+            }
+            alertRepo.evaluate(q, history = { histMap[it] ?: emptyList() }, priceTicks = { ticksMap[it] ?: emptyList() })
             _loading.value = false
         }
     }

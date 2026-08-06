@@ -33,7 +33,7 @@ class AlertRepository(private val context: Context) {
 
     suspend fun all(): List<Alert> = alerts.first()
 
-    suspend fun add(type: AlertType, symbol: String, threshold: Double, label: String): Alert {
+    suspend fun add(type: AlertType, symbol: String, threshold: Double, label: String, isSmart: Boolean = false): Alert {
         val alert = Alert(
             id = UUID.randomUUID().toString(),
             symbol = symbol,
@@ -42,7 +42,8 @@ class AlertRepository(private val context: Context) {
             createdAtEpochMs = System.currentTimeMillis(),
             firedAtEpochMs = null,
             active = true,
-            label = label
+            label = label,
+            isSmart = isSmart
         )
         save(all() + alert)
         return alert
@@ -60,9 +61,15 @@ class AlertRepository(private val context: Context) {
      * Детерминированная проверка условий по свежим котировкам и rolling-истории цен.
      * Возвращает сработавшие алерты (одноразовые — active=false после срабатывания).
      *
-     * @param history карта symbol → [(timeMs, price)] для 15-минутных алертов.
+     * @param history карта symbol → [(timeMs, price)] для 15-минутных алертов (legacy).
+     * @param priceTicks карта symbol → [PriceTick] для Smart-оценки (ATR/волатильность/объём).
      */
-    suspend fun evaluate(quotes: List<Quote>, history: (String) -> List<Pair<Long, Double>> = { emptyList() }): List<Alert> {
+    suspend fun evaluate(
+        quotes: List<Quote>,
+        history: (String) -> List<Pair<Long, Double>> = { emptyList() },
+        priceTicks: (String) -> List<com.sigmaflux.market.data.quote.PriceTick> = { emptyList() },
+        hasUnconfirmedNews: (String) -> Boolean = { false }
+    ): List<Alert> {
         val bySymbol = quotes.associateBy { it.symbol }
         val current = all()
         val fired = mutableListOf<Alert>()
@@ -70,19 +77,27 @@ class AlertRepository(private val context: Context) {
         for (a in current) {
             if (!a.active) { updated += a; continue }
             val q = bySymbol[a.symbol] ?: run { updated += a; continue }
-            val hit = when (a.type) {
-                AlertType.PRICE_ABOVE -> q.price >= a.threshold
-                AlertType.PRICE_BELOW -> q.price <= a.threshold
-                AlertType.DROP_PCT_DAY -> q.changePct <= -a.threshold
-                AlertType.RISE_PCT_DAY -> q.changePct >= a.threshold
-                AlertType.DROP_PCT_15M -> {
-                    // падение за 15 минут от максимума окна (или первой точки окна)
-                    val points = history(a.symbol)
-                    if (points.size < 2) false
-                    else {
-                        val maxPrice = points.maxOf { it.second }
-                        val dropPct = (maxPrice - q.price) / maxPrice * 100
-                        dropPct >= a.threshold
+            val hit = if (a.isSmart) {
+                // Smart-оценка через SmartAlertEngine
+                val ticks = priceTicks(a.symbol).ifEmpty {
+                    // fallback: конвертим legacy history в PriceTick
+                    history(a.symbol).map { com.sigmaflux.market.data.quote.PriceTick(it.first, it.second, q.volume) }
+                }
+                SmartAlertEngine.evaluateSmart(a, q, ticks, hasUnconfirmedNews = hasUnconfirmedNews(a.symbol))
+            } else {
+                when (a.type) {
+                    AlertType.PRICE_ABOVE -> q.price >= a.threshold
+                    AlertType.PRICE_BELOW -> q.price <= a.threshold
+                    AlertType.DROP_PCT_DAY -> q.changePct <= -a.threshold
+                    AlertType.RISE_PCT_DAY -> q.changePct >= a.threshold
+                    AlertType.DROP_PCT_15M -> {
+                        val points = history(a.symbol)
+                        if (points.size < 2) false
+                        else {
+                            val maxPrice = points.maxOf { it.second }
+                            val dropPct = (maxPrice - q.price) / maxPrice * 100
+                            dropPct >= a.threshold
+                        }
                     }
                 }
             }
@@ -97,6 +112,12 @@ class AlertRepository(private val context: Context) {
         if (fired.isNotEmpty()) save(updated)
         return fired
     }
+
+    /** Обратная совместимость: evaluate с PriceTick историей. */
+    suspend fun evaluateWithTicks(
+        quotes: List<Quote>,
+        ticks: (String) -> List<com.sigmaflux.market.data.quote.PriceTick>
+    ): List<Alert> = evaluate(quotes, priceTicks = ticks)
 
     private suspend fun save(list: List<Alert>) {
         context.alertStore.edit { prefs ->
