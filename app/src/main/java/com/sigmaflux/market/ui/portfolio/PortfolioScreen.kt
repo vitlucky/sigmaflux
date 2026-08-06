@@ -13,8 +13,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -221,7 +221,7 @@ private fun CreatePortfolioForm(onCreate: (String, String, Double) -> Unit) {
                     .menuAnchor()
                     .fillMaxWidth()
             )
-            ExposedDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 PortfolioRepository.SUPPORTED_CURRENCIES.forEach { c ->
                     DropdownMenuItem(text = { Text(c) }, onClick = { currency = c; menuOpen = false })
                 }
