@@ -58,7 +58,7 @@ class PriceHistoryRepository(private val context: Context) {
             // prune old on load
             val now = System.currentTimeMillis()
             val cutoff = now - WINDOW_MS
-            memory.values.forEach { list -> list.removeAll { it.t < cutoff } }
+            memory.values.forEach { list -> list.removeIf { it.t < cutoff } }
             loaded = true
         }
     }
@@ -77,7 +77,7 @@ class PriceHistoryRepository(private val context: Context) {
                 while (list.size > MAX_TICKS_PER_SYMBOL) list.removeAt(0)
             }
             // prune all symbols
-            memory.values.forEach { list -> list.removeAll { it.t < cutoff } }
+            memory.values.forEach { list -> list.removeIf { it.t < cutoff } }
             persistLocked()
         }
     }
